@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">WallpaperAppWithJetpack</string>
+    <string name="title_activity_wallpaper">WallpaperActivity</string>
+</resources>
