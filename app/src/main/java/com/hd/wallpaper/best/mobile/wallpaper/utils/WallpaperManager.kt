@@ -34,6 +34,7 @@ fun Context.setWallpaper(type: WallpaperType, bitmap: Bitmap) {
                 )
                 showToast(this)
             }
+            else -> {}
         }
     } else {
         wallpaperManager.setBitmap(bitmap)
@@ -48,5 +49,6 @@ private fun showToast(context: Context) {
 enum class WallpaperType {
     HOME_SCREEN,
     LOCK_SCREEN,
-    BOTH
+    BOTH,
+    NONE
 }

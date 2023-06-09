@@ -2,6 +2,7 @@ package com.hd.wallpaper.best.mobile.wallpaper.screens
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
@@ -17,8 +18,7 @@ import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +30,7 @@ import androidx.navigation.NavHostController
 import androidx.paging.compose.LazyPagingItems
 import coil.compose.AsyncImage
 import com.hd.wallpaper.best.mobile.wallpaper.R
+import com.hd.wallpaper.best.mobile.wallpaper.common.WallpaperBottomSheet
 import com.hd.wallpaper.best.mobile.wallpaper.database.entity.WallpaperEntity
 import com.hd.wallpaper.best.mobile.wallpaper.utils.*
 import kotlinx.coroutines.launch
@@ -44,6 +45,10 @@ fun WallpaperDetailScreen(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val type = remember {
+        mutableStateOf(WallpaperType.NONE)
+    }
+    var bitmap: Bitmap? = null
 
     val pagerState = rememberPagerState(
         initialPage = 0,
@@ -61,7 +66,9 @@ fun WallpaperDetailScreen(
                 wallpapers[pagerState.currentPage]?.urls?.regularImage.toString(),
                 Feature.DOWNLOAD
             ) { state ->
-                handleImageState(context, state)
+                handleImageState(context, state) { bmp ->
+                    bitmap = bmp
+                }
             }
         }
     }
@@ -114,7 +121,9 @@ fun WallpaperDetailScreen(
                             wallpapers[pagerState.currentPage]?.urls?.regularImage.toString(),
                             Feature.DOWNLOAD
                         ) {
-                            handleImageState(context, it)
+                            handleImageState(context, it) { bmp ->
+                                bitmap = bmp
+                            }
                         }
                     } else {
                         requestPermissions(context, launcher)
@@ -122,7 +131,7 @@ fun WallpaperDetailScreen(
                 },
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(20.dp))
             ) {
                 Icon(
                     Icons.Outlined.Download,
@@ -136,7 +145,10 @@ fun WallpaperDetailScreen(
                         wallpapers[pagerState.currentPage]?.urls?.regularImage.toString(),
                         Feature.SET
                     ) {
-                        handleImageState(context, it)
+                        handleImageState(context, it) { bmp ->
+                            bitmap = bmp
+                            type.value = WallpaperType.HOME_SCREEN
+                        }
                     }
                 },
                 modifier = Modifier
@@ -154,7 +166,9 @@ fun WallpaperDetailScreen(
                         wallpapers[pagerState.currentPage]?.urls?.regularImage.toString(),
                         Feature.SHARE
                     ) {
-                        handleImageState(context, it)
+                        handleImageState(context, it) { bmp ->
+                            bitmap = bmp
+                        }
                     }
                 },
                 modifier = Modifier
@@ -168,9 +182,35 @@ fun WallpaperDetailScreen(
             }
         }
     }
+
+    when (type.value) {
+        WallpaperType.HOME_SCREEN -> {
+            WallpaperBottomSheet(
+                onWallpaperOptionChoose = {
+                    bitmap?.let { bmp -> context.setWallpaper(it, bmp) }
+                })
+        }
+        WallpaperType.LOCK_SCREEN -> {
+            WallpaperBottomSheet(
+                onWallpaperOptionChoose = {
+                    bitmap?.let { bmp -> context.setWallpaper(it, bmp) }
+                })
+        }
+        WallpaperType.BOTH -> {
+            WallpaperBottomSheet(
+                onWallpaperOptionChoose = {
+                    bitmap?.let { bmp -> context.setWallpaper(it, bmp) }
+                })
+        }
+        else -> {}
+    }
 }
 
-fun handleImageState(context: Context, state: ImageLoadingState) {
+fun handleImageState(
+    context: Context,
+    state: ImageLoadingState,
+    wallpaper: (Bitmap?) -> Unit
+) {
     when (state) {
         is ImageLoadingState.Loading -> {
             Log.e("SavingError", "WallpaperDetailScreen: Loading Started...")
@@ -180,16 +220,25 @@ fun handleImageState(context: Context, state: ImageLoadingState) {
         }
         is ImageLoadingState.SetWallpaper -> {
             context.setWallpaper(WallpaperType.HOME_SCREEN, state.bitmap)
+//            WallpaperBottomSheet(
+//                onWallpaperOptionChoose = {
+//                    context.setWallpaper(it, state.bitmap)
+//                }
+//            )
         }
         is ImageLoadingState.ShareWallpaper -> {
-            if(state.uri != null) {
+            if (state.uri != null) {
                 val intent = Intent(Intent.ACTION_SEND)
                 intent.putExtra(Intent.EXTRA_STREAM, state.uri)
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 intent.type = "image/*"
                 context.startActivity(intent)
             } else {
-                Toast.makeText(context, "Oops! Something went wrong! Please try again.", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    context,
+                    "Oops! Something went wrong! Please try again.",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
         is ImageLoadingState.Error -> {

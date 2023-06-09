@@ -4,7 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
+import androidx.core.content.ContextCompat
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.hd.wallpaper.best.mobile.wallpaper.navigation.SetupNavGraph
@@ -31,12 +34,11 @@ class MainActivity : ComponentActivity() {
                         _, destination, _ ->
                     when (destination.route) {
                         ROUTE_HOME -> {
-                            systemUiController.isStatusBarVisible = true
-                            systemUiController.setStatusBarColor(color = Color.Blue)
                         }
                         ROUTE_WALLPAPER -> {
-                            systemUiController.isStatusBarVisible = false
-                            systemUiController.setStatusBarColor(color = Color.Transparent)
+//                            systemUiController.setStatusBarColor(color = Color(
+//                                ContextCompat.getColor(this, R.color.black_transparent)
+//                            ))
                         }
                     }
                 }
