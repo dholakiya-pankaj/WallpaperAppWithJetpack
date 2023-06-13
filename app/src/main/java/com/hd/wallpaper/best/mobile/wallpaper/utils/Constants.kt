@@ -8,6 +8,7 @@ object Constants {
     const val WALLPAPER_REMOTE_KEYS_TABLE_NAME = "wallpaper_remote_keys_tale"
     const val WALLPAPER_ORIENTATION = "portrait"
     const val ITEMS_PER_PAGE = 20
+    const val IMAGE_SHARING_TYPE = "image/*"
 
     //Files Constants
     const val CHILD_DIR = "TempWallpapers"

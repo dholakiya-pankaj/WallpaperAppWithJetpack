@@ -25,14 +25,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.paging.compose.LazyPagingItems
 import coil.compose.AsyncImage
 import com.hd.wallpaper.best.mobile.wallpaper.R
+import com.hd.wallpaper.best.mobile.wallpaper.common.MyFloatingActionButton
 import com.hd.wallpaper.best.mobile.wallpaper.common.WallpaperBottomSheet
 import com.hd.wallpaper.best.mobile.wallpaper.database.entity.WallpaperEntity
 import com.hd.wallpaper.best.mobile.wallpaper.utils.*
+import com.hd.wallpaper.best.mobile.wallpaper.utils.Constants.IMAGE_SHARING_TYPE
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -45,10 +48,9 @@ fun WallpaperDetailScreen(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val type = remember {
-        mutableStateOf(WallpaperType.NONE)
-    }
-    var bitmap: Bitmap? = null
+
+    var showBottomSheet by remember { mutableStateOf(false) }
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     val pagerState = rememberPagerState(
         initialPage = 0,
@@ -66,9 +68,7 @@ fun WallpaperDetailScreen(
                 wallpapers[pagerState.currentPage]?.urls?.regularImage.toString(),
                 Feature.DOWNLOAD
             ) { state ->
-                handleImageState(context, state) { bmp ->
-                    bitmap = bmp
-                }
+                handleImageState(context, state)
             }
         }
     }
@@ -78,8 +78,10 @@ fun WallpaperDetailScreen(
         contentAlignment = Alignment.BottomCenter
     ) {
 
-        scope.launch {
-            pagerState.scrollToPage(wallpaperPosition)
+        LaunchedEffect(key1 = wallpaperPosition) {
+            scope.launch {
+                pagerState.scrollToPage(wallpaperPosition)
+            }
         }
 
         HorizontalPager(state = pagerState) { position ->
@@ -92,19 +94,13 @@ fun WallpaperDetailScreen(
                 .align(Alignment.TopStart)
         )
         {
-            FloatingActionButton(
-                onClick = {
+            MyFloatingActionButton(
+                buttonIcon = Icons.Outlined.ArrowBack,
+                contentDescription = stringResource(id = R.string.back_button),
+                onButtonClicked = {
                     navController.navigateUp()
-                },
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(20.dp))
-            ) {
-                Icon(
-                    Icons.Outlined.ArrowBack,
-                    contentDescription = "Back Button",
-                )
-            }
+                }
+            )
         }
 
         Row(
@@ -114,29 +110,21 @@ fun WallpaperDetailScreen(
                 .align(Alignment.BottomCenter)
         )
         {
-            FloatingActionButton(
-                onClick = {
-                    if (context.hasWriteExternalStoragePermission()) {
-                        context.downloadAndSaveImage(
-                            wallpapers[pagerState.currentPage]?.urls?.regularImage.toString(),
-                            Feature.DOWNLOAD
-                        ) {
-                            handleImageState(context, it) { bmp ->
-                                bitmap = bmp
-                            }
-                        }
-                    } else {
-                        requestPermissions(context, launcher)
-                    }
-                },
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(20.dp))
+
+            MyFloatingActionButton(
+                buttonIcon = Icons.Outlined.Download,
+                contentDescription = stringResource(id = R.string.download_wallpaper),
             ) {
-                Icon(
-                    Icons.Outlined.Download,
-                    contentDescription = "Download Wallpaper",
-                )
+                if (context.hasWriteExternalStoragePermission()) {
+                    context.downloadAndSaveImage(
+                        wallpapers[pagerState.currentPage]?.urls?.regularImage.toString(),
+                        Feature.DOWNLOAD
+                    ) {
+                        handleImageState(context, it)
+                    }
+                } else {
+                    requestPermissions(context, launcher)
+                }
             }
 
             FilledIconButton(
@@ -145,9 +133,12 @@ fun WallpaperDetailScreen(
                         wallpapers[pagerState.currentPage]?.urls?.regularImage.toString(),
                         Feature.SET
                     ) {
-                        handleImageState(context, it) { bmp ->
-                            bitmap = bmp
-                            type.value = WallpaperType.HOME_SCREEN
+                        when (it) {
+                            is ImageLoadingState.SetWallpaper -> {
+                                bitmap = it.bitmap
+                                showBottomSheet = true
+                            }
+                            else -> {}
                         }
                     }
                 },
@@ -157,93 +148,72 @@ fun WallpaperDetailScreen(
                     .padding(start = 16.dp, end = 16.dp)
                     .clip(RoundedCornerShape(5.dp))
             ) {
-                Text(text = "Set wallpaper")
+                Text(text = stringResource(id = R.string.set_wallpaper))
             }
 
-            FloatingActionButton(
-                onClick = {
-                    context.downloadAndSaveImage(
-                        wallpapers[pagerState.currentPage]?.urls?.regularImage.toString(),
-                        Feature.SHARE
-                    ) {
-                        handleImageState(context, it) { bmp ->
-                            bitmap = bmp
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(20.dp))
+            MyFloatingActionButton(
+                buttonIcon = Icons.Outlined.Share,
+                contentDescription = stringResource(id = R.string.share_wallpaper),
             ) {
-                Icon(
-                    Icons.Outlined.Share,
-                    contentDescription = "Share Wallpaper",
-                )
+                context.downloadAndSaveImage(
+                    wallpapers[pagerState.currentPage]?.urls?.regularImage.toString(),
+                    Feature.SHARE
+                ) {
+                    handleImageState(context, it)
+                }
             }
         }
     }
 
-    when (type.value) {
-        WallpaperType.HOME_SCREEN -> {
-            WallpaperBottomSheet(
-                onWallpaperOptionChoose = {
-                    bitmap?.let { bmp -> context.setWallpaper(it, bmp) }
-                })
+    if (showBottomSheet) {
+        OpenBottomSheetDialog(context, bitmap) {
+            showBottomSheet = false
         }
-        WallpaperType.LOCK_SCREEN -> {
-            WallpaperBottomSheet(
-                onWallpaperOptionChoose = {
-                    bitmap?.let { bmp -> context.setWallpaper(it, bmp) }
-                })
-        }
-        WallpaperType.BOTH -> {
-            WallpaperBottomSheet(
-                onWallpaperOptionChoose = {
-                    bitmap?.let { bmp -> context.setWallpaper(it, bmp) }
-                })
-        }
-        else -> {}
     }
+}
+
+@Composable
+fun OpenBottomSheetDialog(context: Context, bitmap: Bitmap?, onClose:() -> Unit) {
+    WallpaperBottomSheet(
+        onWallpaperOptionChoose = {
+            onClose.invoke()
+            bitmap?.let { bmp ->
+                context.setWallpaper(it, bmp)
+            }
+        }
+    )
 }
 
 fun handleImageState(
     context: Context,
-    state: ImageLoadingState,
-    wallpaper: (Bitmap?) -> Unit
+    state: ImageLoadingState
 ) {
     when (state) {
         is ImageLoadingState.Loading -> {
             Log.e("SavingError", "WallpaperDetailScreen: Loading Started...")
         }
         is ImageLoadingState.Success -> {
-            Toast.makeText(context, "Image saved successfully", Toast.LENGTH_LONG).show()
-        }
-        is ImageLoadingState.SetWallpaper -> {
-            context.setWallpaper(WallpaperType.HOME_SCREEN, state.bitmap)
-//            WallpaperBottomSheet(
-//                onWallpaperOptionChoose = {
-//                    context.setWallpaper(it, state.bitmap)
-//                }
-//            )
+            Toast.makeText(context, R.string.image_saved, Toast.LENGTH_LONG).show()
         }
         is ImageLoadingState.ShareWallpaper -> {
             if (state.uri != null) {
                 val intent = Intent(Intent.ACTION_SEND)
                 intent.putExtra(Intent.EXTRA_STREAM, state.uri)
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                intent.type = "image/*"
+                intent.type = IMAGE_SHARING_TYPE
                 context.startActivity(intent)
             } else {
                 Toast.makeText(
                     context,
-                    "Oops! Something went wrong! Please try again.",
+                    R.string.share_wallpaper_error,
                     Toast.LENGTH_LONG
                 ).show()
             }
         }
         is ImageLoadingState.Error -> {
-            Toast.makeText(context, "Image saving problem", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, R.string.image_saving_error, Toast.LENGTH_LONG).show()
         }
+        else -> {}
     }
 }
 

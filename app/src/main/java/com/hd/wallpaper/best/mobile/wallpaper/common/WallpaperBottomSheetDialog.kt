@@ -1,55 +1,79 @@
 package com.hd.wallpaper.best.mobile.wallpaper.common
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.hd.wallpaper.best.mobile.wallpaper.utils.WallpaperType
 import kotlinx.coroutines.launch
+import com.hd.wallpaper.best.mobile.wallpaper.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WallpaperBottomSheet(
+    modifier: Modifier = Modifier,
     onWallpaperOptionChoose: (WallpaperType) -> Unit
 ) {
-
     val coroutineScope = rememberCoroutineScope()
     val modalBottomSheetState = rememberModalBottomSheetState()
 
     ModalBottomSheet(
         modifier = Modifier.fillMaxWidth(),
         onDismissRequest = {
-            onWallpaperOptionChoose
+            onWallpaperOptionChoose.invoke(WallpaperType.NONE)
         },
         sheetState = modalBottomSheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() },
     ) {
-        Button(onClick = {
-            coroutineScope.launch {
-                onWallpaperOptionChoose.invoke(WallpaperType.HOME_SCREEN)
-                modalBottomSheetState.hide()
-            }
-        }) {
-            Text(text = "Home Screen")
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    onWallpaperOptionChoose.invoke(WallpaperType.HOME_SCREEN)
+                    modalBottomSheetState.hide()
+                }
+            },
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .clip(ShapeDefaults.ExtraSmall)
+        ) {
+            Text(text = stringResource(id = R.string.home_screen))
         }
 
-        Button(onClick = {
-            coroutineScope.launch {
-                onWallpaperOptionChoose.invoke(WallpaperType.LOCK_SCREEN)
-                modalBottomSheetState.hide()
-            }
-        }) {
-            Text(text = "Lock Screen")
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    onWallpaperOptionChoose.invoke(WallpaperType.LOCK_SCREEN)
+                    modalBottomSheetState.hide()
+                }
+            },
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .clip(ShapeDefaults.ExtraSmall)
+        ) {
+            Text(text = stringResource(id = R.string.lock_screen))
         }
 
-        Button(onClick = {
-            coroutineScope.launch {
-                onWallpaperOptionChoose.invoke(WallpaperType.BOTH)
-                modalBottomSheetState.hide()
-            }
-        }) {
-            Text(text = "Both")
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    onWallpaperOptionChoose.invoke(WallpaperType.BOTH)
+                    modalBottomSheetState.hide()
+                }
+            },
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .navigationBarsPadding()
+        ) {
+            Text(text = stringResource(id = R.string.both_screen))
         }
     }
 }

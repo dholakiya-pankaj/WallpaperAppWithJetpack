@@ -1,4 +1,14 @@
 <resources>
     <string name="app_name">WallpaperAppWithJetpack</string>
     <string name="title_activity_wallpaper">WallpaperActivity</string>
+    <string name="back_button">Back Button</string>
+    <string name="download_wallpaper">Download wallpaper</string>
+    <string name="share_wallpaper">Share wallpaper</string>
+    <string name="home_screen">Home Screen</string>
+    <string name="lock_screen">Lock Screen</string>
+    <string name="both_screen">Both</string>
+    <string name="set_wallpaper">Set wallpaper at</string>
+    <string name="share_wallpaper_error">Oops! Something went wrong! Please try again."</string>
+    <string name="image_saving_error">Wallpaper is not saved. Please try again!</string>
+    <string name="image_saved">Image saved successfully</string>
 </resources>
