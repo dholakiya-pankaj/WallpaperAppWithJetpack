@@ -11,4 +11,5 @@
     <string name="share_wallpaper_error">Oops! Something went wrong! Please try again."</string>
     <string name="image_saving_error">Wallpaper is not saved. Please try again!</string>
     <string name="image_saved">Image saved successfully</string>
+    <string name="wallpaper_set">Wallpaper successfully set.</string>
 </resources>

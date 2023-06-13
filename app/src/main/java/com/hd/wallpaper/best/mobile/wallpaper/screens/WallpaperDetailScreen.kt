@@ -198,7 +198,6 @@ fun OpenBottomSheetDialog(
     showLoader: (Boolean) -> Unit,
     onClose: () -> Unit
 ) {
-
     WallpaperBottomSheet(
         onWallpaperOptionChoose = {
             onClose.invoke()
@@ -210,7 +209,7 @@ fun OpenBottomSheetDialog(
                    }
                     showLoader(false)
                    if(result)
-                       Toast.makeText(context, "Wallpaper successfully set", Toast.LENGTH_LONG).show()
+                       Toast.makeText(context, R.string.wallpaper_set, Toast.LENGTH_LONG).show()
                 }
             }
         }
