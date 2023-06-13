@@ -34,8 +34,8 @@ fun WallpaperBottomSheet(
         Button(
             onClick = {
                 coroutineScope.launch {
-                    onWallpaperOptionChoose.invoke(WallpaperType.HOME_SCREEN)
                     modalBottomSheetState.hide()
+                    onWallpaperOptionChoose.invoke(WallpaperType.HOME_SCREEN)
                 }
             },
             modifier
@@ -49,8 +49,8 @@ fun WallpaperBottomSheet(
         Button(
             onClick = {
                 coroutineScope.launch {
-                    onWallpaperOptionChoose.invoke(WallpaperType.LOCK_SCREEN)
                     modalBottomSheetState.hide()
+                    onWallpaperOptionChoose.invoke(WallpaperType.LOCK_SCREEN)
                 }
             },
             modifier
@@ -64,8 +64,8 @@ fun WallpaperBottomSheet(
         Button(
             onClick = {
                 coroutineScope.launch {
-                    onWallpaperOptionChoose.invoke(WallpaperType.BOTH)
                     modalBottomSheetState.hide()
+                    onWallpaperOptionChoose.invoke(WallpaperType.BOTH)
                 }
             },
             modifier

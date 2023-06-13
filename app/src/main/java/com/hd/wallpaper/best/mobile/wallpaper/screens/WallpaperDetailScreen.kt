@@ -36,7 +36,7 @@ import com.hd.wallpaper.best.mobile.wallpaper.common.WallpaperBottomSheet
 import com.hd.wallpaper.best.mobile.wallpaper.database.entity.WallpaperEntity
 import com.hd.wallpaper.best.mobile.wallpaper.utils.*
 import com.hd.wallpaper.best.mobile.wallpaper.utils.Constants.IMAGE_SHARING_TYPE
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -51,6 +51,7 @@ fun WallpaperDetailScreen(
 
     var showBottomSheet by remember { mutableStateOf(false) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var showLoader by remember { mutableStateOf(false) }
 
     val pagerState = rememberPagerState(
         initialPage = 0,
@@ -64,10 +65,12 @@ fun WallpaperDetailScreen(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) {
         if (it[Constants.WRITE_STORAGE] == true) {
+            showLoader = true
             context.downloadAndSaveImage(
                 wallpapers[pagerState.currentPage]?.urls?.regularImage.toString(),
                 Feature.DOWNLOAD
             ) { state ->
+                showLoader = false
                 handleImageState(context, state)
             }
         }
@@ -110,16 +113,17 @@ fun WallpaperDetailScreen(
                 .align(Alignment.BottomCenter)
         )
         {
-
             MyFloatingActionButton(
                 buttonIcon = Icons.Outlined.Download,
                 contentDescription = stringResource(id = R.string.download_wallpaper),
             ) {
                 if (context.hasWriteExternalStoragePermission()) {
+                    showLoader = true
                     context.downloadAndSaveImage(
                         wallpapers[pagerState.currentPage]?.urls?.regularImage.toString(),
                         Feature.DOWNLOAD
                     ) {
+                        showLoader = false
                         handleImageState(context, it)
                     }
                 } else {
@@ -155,10 +159,12 @@ fun WallpaperDetailScreen(
                 buttonIcon = Icons.Outlined.Share,
                 contentDescription = stringResource(id = R.string.share_wallpaper),
             ) {
+                showLoader = true
                 context.downloadAndSaveImage(
                     wallpapers[pagerState.currentPage]?.urls?.regularImage.toString(),
                     Feature.SHARE
                 ) {
+                    showLoader = false
                     handleImageState(context, it)
                 }
             }
@@ -166,19 +172,46 @@ fun WallpaperDetailScreen(
     }
 
     if (showBottomSheet) {
-        OpenBottomSheetDialog(context, bitmap) {
+        OpenBottomSheetDialog(context, bitmap, scope, showLoader = {
+            showLoader = it
+        }, onClose = {
             showBottomSheet = false
+        })
+    }
+
+    if(showLoader) {
+        Box(modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.wrapContentSize()
+            )
         }
     }
 }
 
 @Composable
-fun OpenBottomSheetDialog(context: Context, bitmap: Bitmap?, onClose:() -> Unit) {
+fun OpenBottomSheetDialog(
+    context: Context,
+    bitmap: Bitmap?,
+    scope: CoroutineScope,
+    showLoader: (Boolean) -> Unit,
+    onClose: () -> Unit
+) {
+
     WallpaperBottomSheet(
         onWallpaperOptionChoose = {
             onClose.invoke()
             bitmap?.let { bmp ->
-                context.setWallpaper(it, bmp)
+                showLoader(true)
+                scope.launch {
+                   val result = withContext(Dispatchers.IO) {
+                       context.setWallpaper(it, bmp)
+                   }
+                    showLoader(false)
+                   if(result)
+                       Toast.makeText(context, "Wallpaper successfully set", Toast.LENGTH_LONG).show()
+                }
             }
         }
     )
