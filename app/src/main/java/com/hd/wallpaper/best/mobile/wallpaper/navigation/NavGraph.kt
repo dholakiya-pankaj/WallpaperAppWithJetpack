@@ -22,7 +22,7 @@ fun SetupNavGraph(
     navController: NavHostController
 ) {
     val wallpaperViewModel: WallpaperListViewModel = hiltViewModel()
-    val wallpapers = wallpaperViewModel.getAllWallpapers().collectAsLazyPagingItems()
+    val wallpapers = wallpaperViewModel.searchWallpaper("Love").collectAsLazyPagingItems()
     AnimatedNavHost(
         navController = navController,
         startDestination = Screen.Home.route

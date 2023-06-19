@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +50,7 @@ fun WallpaperDetailScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    val position by rememberSaveable { mutableStateOf(wallpaperPosition) }
     var showBottomSheet by remember { mutableStateOf(false) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var showLoader by remember { mutableStateOf(false) }
@@ -74,6 +76,7 @@ fun WallpaperDetailScreen(
                 handleImageState(context, state)
             }
         }
+
     }
 
     Box(
@@ -81,14 +84,15 @@ fun WallpaperDetailScreen(
         contentAlignment = Alignment.BottomCenter
     ) {
 
-        LaunchedEffect(key1 = wallpaperPosition) {
-            scope.launch {
-                pagerState.scrollToPage(wallpaperPosition)
-            }
-        }
-
         HorizontalPager(state = pagerState) { position ->
             PagerScreen(wallpaper = wallpapers[position])
+        }
+
+        LaunchedEffect(key1 = position) {
+            scope.launch {
+                Log.d("PagerPosition", "WallpaperDetailScreen: $position")
+                pagerState.scrollToPage(position)
+            }
         }
 
         Row(
