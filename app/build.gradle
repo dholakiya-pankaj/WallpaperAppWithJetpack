@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace 'com.hd.wallpaper.best.mobile.wallpaper'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.hd.wallpaper.best.mobile.wallpaper"
         minSdk 22
-        targetSdk 33
+        targetSdk 34
         versionCode 1
         versionName "1.0"
 

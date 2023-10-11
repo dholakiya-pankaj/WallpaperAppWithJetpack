@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -97,16 +98,31 @@ private fun saveInStorage(context: Context, bitmap: Bitmap): Boolean {
 
     return try {
         context.contentResolver.insert(imageCollectionUri, contentValues)?.also {
-            context.contentResolver.openOutputStream(it).use { outputStream ->
+            context.contentResolver.openOutputStream(it)?.use { outputStream ->
                 if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)) {
                     throw IOException("Couldn't save image")
                 }
-            }
+            } ?: throw IOException("Couldn't save image")
         } ?: throw IOException("Couldn't create MediaStore entry")
         true
     } catch (e: IOException) {
         e.printStackTrace()
         return false
+    }
+}
+
+fun saveBitmapInStorage(bitmap: Bitmap) {
+    val file = File(
+        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+        "screenshot-${System.currentTimeMillis()}.png"
+    )
+    file.writeBitmap(bitmap, Bitmap.CompressFormat.PNG, 100)
+}
+
+private fun File.writeBitmap(bitmap: Bitmap, format: Bitmap.CompressFormat, quality: Int) {
+    outputStream().use { out ->
+        bitmap.compress(format, quality, out)
+        out.flush()
     }
 }
 
