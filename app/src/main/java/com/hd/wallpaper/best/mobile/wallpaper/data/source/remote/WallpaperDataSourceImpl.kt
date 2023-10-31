@@ -28,15 +28,17 @@ class WallpaperDataSourceImpl @Inject constructor(
         ).flow
     }
 
+    @OptIn(ExperimentalPagingApi::class)
     override fun searchWallpaper(query: String): Flow<PagingData<WallpaperEntity>> {
+        val pagingSourceFactory = { wallpaperDatabase.getWallpaperDao().getAllWallpapers() }
         return Pager(
             config = PagingConfig(pageSize = ITEMS_PER_PAGE),
-            pagingSourceFactory = {
-                SearchPagingSource(
-                    wallpaperService,
-                    query
-                )
-            }
+            remoteMediator = SearchPagingSource(
+                query = query,
+                wallpaperService = wallpaperService,
+                wallpaperDatabase = wallpaperDatabase
+            ),
+            pagingSourceFactory = pagingSourceFactory
         ).flow
     }
 

@@ -1,45 +1,108 @@
 package com.hd.wallpaper.best.mobile.wallpaper.data.source.paging
 
+import androidx.paging.ExperimentalPagingApi
+import androidx.paging.LoadType
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import androidx.paging.RemoteMediator
+import androidx.room.withTransaction
 import com.hd.wallpaper.best.mobile.wallpaper.data.mapper.toDomain
 import com.hd.wallpaper.best.mobile.wallpaper.data.service.WallpaperService
+import com.hd.wallpaper.best.mobile.wallpaper.database.db.WallpaperDatabase
 import com.hd.wallpaper.best.mobile.wallpaper.database.entity.WallpaperEntity
-import com.hd.wallpaper.best.mobile.wallpaper.utils.Constants.ITEMS_PER_PAGE
+import com.hd.wallpaper.best.mobile.wallpaper.database.entity.WallpaperRemoteKeys
+import com.hd.wallpaper.best.mobile.wallpaper.utils.Constants
 
+@OptIn(ExperimentalPagingApi::class)
 class SearchPagingSource(
+    private val query: String, //Ex.: Nature, Love, Girls etc.
     private val wallpaperService: WallpaperService,
-    private val query: String //Ex.: Nature, Love, Girls etc.
-) : PagingSource<Int, WallpaperEntity>() {
+    private val wallpaperDatabase: WallpaperDatabase
+) : RemoteMediator<Int, WallpaperEntity>() {
 
-    override fun getRefreshKey(state: PagingState<Int, WallpaperEntity>): Int? {
-        return state.anchorPosition
+    private val wallpaperDao = wallpaperDatabase.getWallpaperDao()
+    private val remoteKeysDao = wallpaperDatabase.getRemoteKeysDao()
+
+    override suspend fun load(
+        loadType: LoadType,
+        state: PagingState<Int, WallpaperEntity>
+    ): MediatorResult {
+        return try {
+            val currentPage = when (loadType) {
+                LoadType.REFRESH -> {
+                    val remoteKeys = getRemoteKeyClosestToCurrentPosition(state)
+                    remoteKeys?.nextPage?.minus(1) ?: 1
+                }
+                LoadType.PREPEND -> {
+                    val remoteKeys = getRemoteKeyForFirstItem(state)
+                    val prevPage = remoteKeys?.prevPage
+                        ?: return MediatorResult.Success(
+                            endOfPaginationReached = remoteKeys != null
+                        )
+                    prevPage
+                }
+                LoadType.APPEND -> {
+                    val remoteKeys = getRemoteKeyForLastItem(state)
+                    val nextPage = remoteKeys?.nextPage
+                        ?: return MediatorResult.Success(
+                            endOfPaginationReached = remoteKeys != null
+                        )
+                    nextPage
+                }
+            }
+
+            val response = wallpaperService.searchWallpaper(query, currentPage, Constants.ITEMS_PER_PAGE)
+            val endOfPaginationReached = response.wallpapers.isEmpty()
+
+            val prevPage = if (currentPage == 1) null else currentPage - 1
+            val nextPage = if(endOfPaginationReached) null else currentPage + 1
+
+            wallpaperDatabase.withTransaction {
+                if (loadType == LoadType.REFRESH) {
+                    wallpaperDao.deleteAllWallpapers()
+                    remoteKeysDao.deleteAllRemoteKeys()
+                }
+                val keys = response.wallpapers.map { wallpaper ->
+                    WallpaperRemoteKeys(
+                        id = wallpaper.id.toString(),
+                        prevPage = prevPage,
+                        nextPage = nextPage
+                    )
+                }
+                remoteKeysDao.addAllRemoteKeys(remoteKeys = keys)
+                wallpaperDao.insertWallpapers(wallpapers = response.toDomain())
+            }
+            MediatorResult.Success(endOfPaginationReached = endOfPaginationReached)
+        } catch (e: Exception) {
+            return MediatorResult.Error(e)
+        }
     }
 
-    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, WallpaperEntity> {
-        val currentPage = params.key ?: 1
-        return try {
-            val response = wallpaperService.searchWallpaper(
-                query = query,
-                page = currentPage,
-                perPage = ITEMS_PER_PAGE
-            )
-            val endOfPaginationReached = response.wallpapers.isEmpty()
-            if (response.wallpapers.isNotEmpty()) {
-                LoadResult.Page(
-                    data = response.toDomain(),
-                    prevKey = if (currentPage == 1) null else currentPage - 1,
-                    nextKey = if (endOfPaginationReached) null else currentPage + 1
-                )
-            } else {
-                LoadResult.Page(
-                    data = emptyList(),
-                    prevKey = null,
-                    nextKey = null
-                )
+    private suspend fun getRemoteKeyClosestToCurrentPosition(
+        state: PagingState<Int, WallpaperEntity>
+    ): WallpaperRemoteKeys? {
+        return state.anchorPosition?.let { position ->
+            state.closestItemToPosition(position)?.wallpaperId?.let { id ->
+                remoteKeysDao.getRemoteKeys(id = id)
             }
-        } catch (e: Exception) {
-            LoadResult.Error(e)
         }
+    }
+
+    private suspend fun getRemoteKeyForFirstItem(
+        state: PagingState<Int, WallpaperEntity>
+    ): WallpaperRemoteKeys? {
+        return state.pages.firstOrNull { it.data.isNotEmpty() }?.data?.firstOrNull()
+            ?.let { unsplashImage ->
+                remoteKeysDao.getRemoteKeys(id = unsplashImage.wallpaperId)
+            }
+    }
+
+    private suspend fun getRemoteKeyForLastItem(
+        state: PagingState<Int, WallpaperEntity>
+    ): WallpaperRemoteKeys? {
+        return state.pages.lastOrNull { it.data.isNotEmpty() }?.data?.lastOrNull()
+            ?.let { unsplashImage ->
+                remoteKeysDao.getRemoteKeys(id = unsplashImage.wallpaperId)
+            }
     }
 }
