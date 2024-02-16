@@ -2,4 +2,4 @@ To make this application working in your Android Studio, You shoud create an acc
 And Add the below things in your gradle.properties file.
 UNSPLASH_BASE_URL="https://api.unsplash.com/"
 UNSPLASH_ACCESS_KEY="Add your access key here"
-UNSPLASH_SECRET_KEY="Add your access key here"
+UNSPLASH_SECRET_KEY="Add your secret key here"
